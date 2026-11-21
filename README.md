@@ -1,6 +1,6 @@
 # Media Picker
 
-Source preview for Despia V3. This snapshot requires the runtime update currently awaiting release and an approved extension-enabled native build. Uploading these files does not change an installed app.
+Source preview for Despia V3. The runtime update and automatic discovery rollout are awaiting release. Rebuild and install the native app to include these files; uploading them does not change an installed app.
 
 Native file selection, video transcoding and persistent uploads. Experimental preview, compatibility work is in progress.
 
@@ -17,11 +17,11 @@ Use the Despia SDK with React, Vue, Svelte, Next.js, TanStack or HTML5. Projects
 - `manifest.json`: the extension's routes, parameters, events and native files.
 - `ios/` and `android/`: the Swift and Kotlin or Java sources and resources the manifest names.
 - `extensions.example.json`: the entry for `public/despia/extensions.json`.
-- `mediapicker.policy.json`: the approval policy. It is a file you send to Despia with your approval request, together with the extension files. It is not served from your site and does not go into `public/despia/`.
+- `mediapicker.policy.json`: the build verification policy. It records declarations used by signed build verification. It is not served from your site and does not go into `public/despia/`.
 
 ## Requirements
 
-- A Despia V3 app with V3 Extensions enabled, and a web app that serves static files from its own HTTPS origin.
+- A Despia V3 app and a web app that serves static files from its own HTTPS origin.
 - The `despia-native` JavaScript SDK (`npm install despia-native`).
 - An upload endpoint for the files you upload from the page.
 
@@ -30,7 +30,9 @@ Use the Despia SDK with React, Vue, Svelte, Next.js, TanStack or HTML5. Projects
 1. Copy `manifest.json`, `ios/` and `android/` into `public/despia/mediapicker/` in your web app. The folder name is the extension id, so pages call `extension://mediapicker/<route>`. Keep every path inside the folder unchanged, because the manifest names them. (`public/` is the folder your site serves from its root; in SvelteKit, use `static/`.)
 2. Add `"mediapicker"` to the `extensions` list in `public/despia/extensions.json`. `extensions.example.json` shows the entry. Despia takes app identity from the build configuration.
 3. Set the values listed under "Values to set before you build". Vendor keys and hosts in this repository are placeholders only. Never put a server secret in the manifest or anywhere in your web app.
-4. Request approval and a new native build in Despia, and send `mediapicker.policy.json` with the request. Despia reviews and approves these exact files before a build includes them, and any change to the manifest or to a native file needs a new approval and a new native build. It cannot be applied over the air.
+4. Rebuild and install the native app with these extension files. Any change to the manifest or native source requires another native build. It cannot be applied over the air.
+
+Signed build verification binds source hashes, dependency pins, app identity and final artifacts. It is separate from human code review and does not require a per-app enrollment switch.
 
 ## JavaScript SDK
 
@@ -221,7 +223,7 @@ A file is deleted when the page releases it, when an upload with `release_after`
 
 - **Camera.** `android.permission.CAMERA`, declared under `requires.permissions`. Turn it on for your app in Despia.
 - **Foreground service.** `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC` and `FOREGROUND_SERVICE_MEDIA_PROCESSING` for the transcode service, and `POST_NOTIFICATIONS` for its notification.
-- **Capture provider.** A `FileProvider` that is not exported. It is listed in the approval policy because it grants URI access to the camera app.
+- **Capture provider.** A `FileProvider` that is not exported. It is listed in the build verification policy because it grants URI access to the camera app.
 - **Libraries.** `androidx.core:core:1.18.0`, `androidx.activity:activity:1.13.0`, `androidx.work:work-runtime:2.11.2` and `androidx.media3:media3-transformer:1.10.1`, the versions your app's base build already resolves.
 
 ---

@@ -93,10 +93,38 @@ The Android dependencies must be the versions your app's base build already reso
 ```javascript
 import despia from 'despia-native';
 
-globalThis.onMediaPickerFileEvent = file => {
-  if (file.kind === 'image' && file.state === 'ready') document.querySelector('img').src = file.url;
+const previousMediaPickerFileEvent = globalThis.onMediaPickerFileEvent;
+const handleMediaPickerFileEvent = file => {
+  try {
+    if (typeof previousMediaPickerFileEvent === 'function') previousMediaPickerFileEvent(file);
+  } finally {
+    if (file.kind === 'image' && file.state === 'ready') document.querySelector('img').src = file.url;
+  }
 };
-globalThis.onMediaPickerJobEvent = job => console.log(job.kind, job.state, job.progress);
+globalThis.onMediaPickerFileEvent = handleMediaPickerFileEvent;
+const cleanupMediaPickerFileEvent = () => {
+  if (globalThis.onMediaPickerFileEvent !== handleMediaPickerFileEvent) return;
+  if (previousMediaPickerFileEvent === undefined) delete globalThis.onMediaPickerFileEvent;
+  else globalThis.onMediaPickerFileEvent = previousMediaPickerFileEvent;
+};
+// Call cleanupMediaPickerFileEvent() when this component unmounts.
+
+const previousMediaPickerJobEvent = globalThis.onMediaPickerJobEvent;
+const handleMediaPickerJobEvent = job => {
+  try {
+    if (typeof previousMediaPickerJobEvent === 'function') previousMediaPickerJobEvent(job);
+  } finally {
+    console.log(job.kind, job.state, job.progress)
+  }
+};
+globalThis.onMediaPickerJobEvent = handleMediaPickerJobEvent;
+const cleanupMediaPickerJobEvent = () => {
+  if (globalThis.onMediaPickerJobEvent !== handleMediaPickerJobEvent) return;
+  if (previousMediaPickerJobEvent === undefined) delete globalThis.onMediaPickerJobEvent;
+  else globalThis.onMediaPickerJobEvent = previousMediaPickerJobEvent;
+};
+// Call cleanupMediaPickerJobEvent() when this component unmounts.
+
 
 const selectionReply = await despia(`extension://mediapicker/pick?types=${encodeURIComponent('image,video')}&multiple=${encodeURIComponent(true)}&limit=${encodeURIComponent(10)}&max_file_mb=${encodeURIComponent(2048)}`, ['mediaPickerPick']);
 const selection = selectionReply.mediaPickerPick;

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nx_mediapicker_channel">Media processing</string>
+    <string name="nx_mediapicker_transcoding">Preparing video</string>
+    <string name="nx_mediapicker_photo_library">Photos and videos</string>
+    <string name="nx_mediapicker_camera_photo">Take photo</string>
+    <string name="nx_mediapicker_camera_video">Record video</string>
+    <string name="nx_mediapicker_files">Browse files</string>
+    <string name="nx_mediapicker_choose">Choose a file</string>
+</resources>

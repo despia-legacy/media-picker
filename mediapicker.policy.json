@@ -1,0 +1,20 @@
+{
+  "exposed_components": {
+    "android": [
+      {
+        "authorities": "${applicationId}.nx.mediapicker.capture",
+        "enabled": null,
+        "exported": false,
+        "grant_uri_permission": [],
+        "grant_uri_permissions": true,
+        "intent_filters": [],
+        "name": "despia.ext.mediapicker.CaptureProvider",
+        "path_permissions": [],
+        "permission": null,
+        "read_permission": null,
+        "tag": "provider",
+        "write_permission": null
+      }
+    ]
+  }
+}

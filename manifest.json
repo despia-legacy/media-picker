@@ -1,0 +1,387 @@
+{
+  "version": "1.0.0",
+  "bridge": {
+    "routes": [
+      {
+        "name": "pick",
+        "params": {
+          "types": {
+            "type": "string",
+            "max": 512
+          },
+          "source": {
+            "type": "enum",
+            "values": [
+              "auto",
+              "library",
+              "camera",
+              "files"
+            ]
+          },
+          "multiple": {
+            "type": "bool"
+          },
+          "limit": {
+            "type": "int",
+            "min": 0,
+            "max": 500
+          },
+          "max_file_mb": {
+            "type": "int",
+            "min": 0,
+            "max": 4096
+          },
+          "max_total_mb": {
+            "type": "int",
+            "min": 0,
+            "max": 4096
+          },
+          "representation": {
+            "type": "enum",
+            "values": [
+              "current",
+              "compatible",
+              "automatic"
+            ]
+          },
+          "ordered": {
+            "type": "bool"
+          },
+          "camera": {
+            "type": "enum",
+            "values": [
+              "photo",
+              "video",
+              "both"
+            ]
+          },
+          "max_duration_s": {
+            "type": "int",
+            "min": 0,
+            "max": 3600
+          },
+          "camera_quality": {
+            "type": "enum",
+            "values": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "accent_color": {
+            "type": "string",
+            "max": 7
+          },
+          "tab": {
+            "type": "enum",
+            "values": [
+              "photos",
+              "albums"
+            ]
+          }
+        },
+        "output": {
+          "variable": "mediaPickerPick",
+          "callback": "onMediaPickerPick"
+        }
+      },
+      {
+        "name": "result",
+        "params": {
+          "pick": {
+            "type": "string",
+            "max": 36,
+            "required": true
+          }
+        },
+        "output": {
+          "variable": "mediaPickerResult",
+          "callback": "onMediaPickerResult"
+        }
+      },
+      {
+        "name": "files",
+        "params": {
+          "id": {
+            "type": "string",
+            "max": 36
+          }
+        },
+        "output": {
+          "variable": "mediaPickerFiles",
+          "callback": "onMediaPickerFiles"
+        }
+      },
+      {
+        "name": "release",
+        "params": {
+          "id": {
+            "type": "string",
+            "max": 36
+          },
+          "all": {
+            "type": "bool"
+          }
+        },
+        "output": {
+          "variable": "mediaPickerRelease",
+          "callback": "onMediaPickerRelease"
+        }
+      },
+      {
+        "name": "transcode",
+        "params": {
+          "id": {
+            "type": "string",
+            "max": 36,
+            "required": true
+          },
+          "preset": {
+            "type": "enum",
+            "values": [
+              "480p",
+              "540p",
+              "720p",
+              "1080p",
+              "1440p",
+              "2160p",
+              "source"
+            ]
+          },
+          "codec": {
+            "type": "enum",
+            "values": [
+              "h264",
+              "hevc"
+            ]
+          },
+          "bitrate_kbps": {
+            "type": "string",
+            "max": 6
+          },
+          "frame_rate": {
+            "type": "int",
+            "min": 0,
+            "max": 120
+          },
+          "audio": {
+            "type": "enum",
+            "values": [
+              "keep",
+              "remove"
+            ]
+          },
+          "audio_bitrate_kbps": {
+            "type": "int",
+            "min": 32,
+            "max": 320
+          }
+        },
+        "output": {
+          "variable": "mediaPickerTranscode",
+          "callback": "onMediaPickerTranscode"
+        }
+      },
+      {
+        "name": "upload",
+        "params": {
+          "id": {
+            "type": "string",
+            "max": 36,
+            "required": true
+          },
+          "url": {
+            "type": "https_url",
+            "hosts": [
+              "upload.example.com"
+            ],
+            "required": true
+          },
+          "method": {
+            "type": "enum",
+            "values": [
+              "PUT",
+              "POST"
+            ]
+          },
+          "form_field": {
+            "type": "string",
+            "max": 64
+          },
+          "content_type": {
+            "type": "string",
+            "max": 127
+          },
+          "release_after": {
+            "type": "bool"
+          }
+        },
+        "output": {
+          "variable": "mediaPickerUpload",
+          "callback": "onMediaPickerUpload"
+        }
+      },
+      {
+        "name": "jobs",
+        "params": {
+          "id": {
+            "type": "string",
+            "max": 36
+          }
+        },
+        "output": {
+          "variable": "mediaPickerJobs",
+          "callback": "onMediaPickerJobs"
+        }
+      },
+      {
+        "name": "cancel",
+        "params": {
+          "id": {
+            "type": "string",
+            "max": 36,
+            "required": true
+          }
+        },
+        "output": {
+          "variable": "mediaPickerCancel",
+          "callback": "onMediaPickerCancel"
+        }
+      }
+    ],
+    "events": [
+      {
+        "name": "pick",
+        "callback": "onMediaPickerPickEvent",
+        "scope": "document"
+      },
+      {
+        "name": "file",
+        "callback": "onMediaPickerFileEvent",
+        "scope": "document"
+      },
+      {
+        "name": "job",
+        "callback": "onMediaPickerJobEvent",
+        "scope": "document"
+      },
+      {
+        "name": "server",
+        "callback": "onMediaPickerServerEvent",
+        "scope": "document"
+      }
+    ]
+  },
+  "ios": {
+    "app": {
+      "entry_type": "MediaPickerExtension",
+      "sources": [
+        "ios/app/MediaPickerExtension.swift",
+        "ios/app/MediaPickerCore.swift",
+        "ios/app/MediaPickerUI.swift",
+        "ios/app/MediaFileServer.swift",
+        "ios/app/MediaTranscoder.swift",
+        "ios/app/MediaUploader.swift"
+      ],
+      "frameworks": [
+        "AVFoundation",
+        "BackgroundTasks",
+        "ImageIO",
+        "Network",
+        "PhotosUI",
+        "UniformTypeIdentifiers"
+      ],
+      "requires": {
+        "usage_descriptions": [
+          "NSCameraUsageDescription",
+          "NSMicrophoneUsageDescription"
+        ]
+      },
+      "info_plist": {
+        "UIBackgroundModes": [
+          "processing"
+        ]
+      },
+      "lifecycle": [
+        "launch",
+        "scene",
+        "background_task"
+      ],
+      "background_tasks": [
+        "upload"
+      ]
+    }
+  },
+  "android": {
+    "entry_class": "despia.ext.mediapicker.MediaPickerExtension",
+    "requires": {
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
+    },
+    "lifecycle": [
+      "application_create",
+      "activity_lifecycle"
+    ],
+    "modules": [
+      {
+        "kind": "typed",
+        "name": "mediapicker",
+        "namespace": "despia.ext.mediapicker",
+        "sources": [
+          "android/mediapicker/java/despia/ext/mediapicker/MediaPickerExtension.java",
+          "android/mediapicker/java/despia/ext/mediapicker/MediaCore.java",
+          "android/mediapicker/java/despia/ext/mediapicker/MediaStore.java",
+          "android/mediapicker/java/despia/ext/mediapicker/MediaServer.java",
+          "android/mediapicker/java/despia/ext/mediapicker/Transcoder.java",
+          "android/mediapicker/java/despia/ext/mediapicker/TranscodeService.java",
+          "android/mediapicker/java/despia/ext/mediapicker/UploadWorker.java",
+          "android/mediapicker/java/despia/ext/mediapicker/CaptureProvider.java"
+        ],
+        "res": [
+          "android/mediapicker/res/xml/nx_mediapicker_paths.xml",
+          "android/mediapicker/res/values/nx_mediapicker_strings.xml"
+        ],
+        "permissions": [
+          "android.permission.FOREGROUND_SERVICE",
+          "android.permission.FOREGROUND_SERVICE_DATA_SYNC",
+          "android.permission.FOREGROUND_SERVICE_MEDIA_PROCESSING",
+          "android.permission.POST_NOTIFICATIONS"
+        ],
+        "components": [
+          {
+            "type": "service",
+            "class": "despia.ext.mediapicker.TranscodeService",
+            "exported": false,
+            "foreground_service_type": [
+              "dataSync",
+              "mediaProcessing"
+            ]
+          },
+          {
+            "type": "provider",
+            "class": "despia.ext.mediapicker.CaptureProvider",
+            "exported": false,
+            "authority_suffix": "capture",
+            "grant_uri_permissions": true,
+            "meta_data": [
+              {
+                "name": "android.support.FILE_PROVIDER_PATHS",
+                "resource": "@xml/nx_mediapicker_paths"
+              }
+            ]
+          }
+        ],
+        "dependencies": [
+          "androidx.core:core:1.18.0",
+          "androidx.activity:activity:1.13.0",
+          "androidx.work:work-runtime:2.11.2",
+          "androidx.media3:media3-transformer:1.10.1",
+          "androidx.media3:media3-effect:1.10.1",
+          "androidx.media3:media3-common:1.10.1",
+          "com.google.android.material:material:1.13.0"
+        ]
+      }
+    ]
+  }
+}

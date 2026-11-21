@@ -235,6 +235,12 @@ A file is deleted when the page releases it, when an upload with `release_after`
 - **Android camera quality.** `EXTRA_VIDEO_QUALITY` takes only 0 or 1, so `medium` maps to 1.
 - **Media3.** The extension uses the version your app's base build resolves (1.10.1).
 
+## Verification
+
+Historical results remain mixed on the Android emulator and iPhone 15. Four iOS observations remain unresolved: multiple selection, camera capture, local video playback and released-URL WebView behavior.
+
+On a controlled iPhone 15 running iOS 26.1, an isolated test host passed the published SDK/native files preflight and a library swipe with no media selected. The stored result and same-document event both reported `cancelled`. Native diagnostics confirmed the presentation controller's delegate was attached. This result covers that isolated host and cancellation flow only.
+
 ## License
 
 [Despia V3 Extension Source-Available Commercial License](LICENSE).

@@ -40,19 +40,23 @@ Install the SDK in your web app:
 npm install despia-native
 ```
 
-Copy `example/src/lib/despia-extension.js` to your app's `src/lib/` and adjust the import path if needed. It imports `despia` from `despia-native`, calls the SDK and returns the native answer's `data`. It checks native error envelopes and throws an error with their `code`. The SDK itself resolves native `ok: false` envelopes; it does not reject them. A single watched value becomes `undefined` after 30 seconds, which this helper reports as `sdk_timeout`.
+Call the published SDK directly and watch the exact answer variable declared in `manifest.json`. The SDK resolves to an object keyed by that variable; the native envelope is inside it. Check both a missing reply and `ok: false` before using `data`. Native errors resolve through the SDK; they do not reject its promise. A single watched variable becomes `undefined` after 30 seconds without a reply.
 
-Each helper call forwards a unique native callback into a separate watched value, so overlapping calls do not share response globals. `onExtensionEvent` registers the declared native event callbacks and returns a cleanup function. Events are callbacks, not values you can poll from the SDK proxy.
+Await calls that use the same answer variable sequentially. The SDK's command queue does not correlate concurrent responses. Encode every query value with `encodeURIComponent`, including JSON text. Spaces become `%20`; a literal plus becomes `%2B`. Do not use unmodified `URLSearchParams` form encoding, which uses plus for spaces.
 
-Importing the SDK is safe during server rendering. Run calls and event subscriptions only from browser click handlers or mounted client hooks. React and Vue can use the browser APIs used by this helper; in Next.js and other server-rendered apps, keep these calls in client code. The extension must be included in the installed Despia V3 app; a browser preview has no native extension features.
+Importing the SDK is safe during server rendering. Run native calls only in browser click handlers or mounted client hooks, including client components in Next.js. The extension must be included in the installed Despia V3 app; a browser preview has no native extension features. Optional event handlers use the declared callback on `globalThis`, not an SDK subscription API. Save and restore any callback your app already owns when a component mounts and unmounts.
 
 ## Calling it
 
 ```javascript
-import { extensionCall } from './lib/despia-extension.js';
+import despia from 'despia-native';
 
-const answer = await extensionCall('mediapicker', 'files');
-console.log(answer);
+const answerReply = await despia('extension://mediapicker/files', ['mediaPickerFiles']);
+const answer = answerReply.mediaPickerFiles;
+if (answer === undefined) throw new Error('No native reply within 30 seconds');
+if (!answer.ok) throw new Error(answer.code + ': ' + answer.error);
+
+console.log(answer.data);
 ```
 
 Calls use `extension://mediapicker/<route>?<params>`. Each route answers once, in the page that made the call: the runtime sets the route's answer variable in the page, then calls the route's callback. Only declared parameters are accepted. Keep large data on the native side and pass identifiers through the bridge. A call URL is at most 8192 characters.
@@ -65,7 +69,7 @@ Standard error codes: `bad_request` (an undeclared or missing parameter, or a va
 
 ## About
 
-This extension replaces the web view's `<input type="file">` with the platform's own pickers for every kind of file. Each picked file reaches your page as a local URL at once, with no base64 and no bytes through the bridge. The extension implements native video transcoding and persisted upload jobs.
+This extension replaces the web view's `<input type="file">` with the platform's own pickers for every kind of file. The pick route returns a pickId immediately. Read result and files as the native import completes; a ready file includes its local URL. File bytes stay outside the bridge. The extension implements native video transcoding and persisted upload jobs.
 
 - **Pick:** photos and videos, audio, documents and any MIME type, from the library, the camera or the Files app.
 - **Use:** play, show or `fetch` the file straight from its local URL.
@@ -87,23 +91,25 @@ The Android dependencies must be the versions your app's base build already reso
 ## Using it from your web app
 
 ```javascript
-import { extensionCall, onExtensionEvent } from './lib/despia-extension.js';
-const picker = (route, params) => extensionCall('mediapicker', route, params);
-const stopFiles = onExtensionEvent('onMediaPickerFileEvent', file => {
-  if (file.state !== 'ready') return;
-  if (file.kind === 'video') document.querySelector('video').src = file.url;
-  if (file.kind === 'image') document.querySelector('img').src = file.url;
-});
-const stopJobs = onExtensionEvent('onMediaPickerJobEvent', job => console.log(job.kind, job.state, job.progress));
-const selection = await picker('pick', { types: 'image,video', multiple: true, limit: 10, max_file_mb: 2048 });
-console.log(selection.pickId);
-// Re-read selection after native UI completion: await picker('result', { pick: selection.pickId });
-// await picker('transcode', { id: fileId, preset: '720p', codec: 'hevc' });
-// await picker('upload', { id: outputFileId, url: uploadUrl, release_after: true });
-// Dispose subscriptions when the page unmounts: stopFiles(); stopJobs();
+import despia from 'despia-native';
+
+globalThis.onMediaPickerFileEvent = file => {
+  if (file.kind === 'image' && file.state === 'ready') document.querySelector('img').src = file.url;
+};
+globalThis.onMediaPickerJobEvent = job => console.log(job.kind, job.state, job.progress);
+
+const selectionReply = await despia(`extension://mediapicker/pick?types=${encodeURIComponent('image,video')}&multiple=${encodeURIComponent(true)}&limit=${encodeURIComponent(10)}&max_file_mb=${encodeURIComponent(2048)}`, ['mediaPickerPick']);
+const selection = selectionReply.mediaPickerPick;
+if (selection === undefined) throw new Error('No native reply within 30 seconds');
+if (!selection.ok) throw new Error(selection.code + ': ' + selection.error);
+
+console.log(selection.data.pickId);
+// After the native picker finishes, call result with this pickId.
+// Use the file's URL only while files or result reports state ready.
+// Remove or restore your event callbacks on unmount.
 ```
 
-Every route answers at once, once. What happens later arrives as an event and stays readable through a route. A route answers in `mediaPicker<Route>` and `onMediaPicker<Route>`, for example `mediaPickerPick` and `onMediaPickerPick`.
+Every route answers once. Read result, files or jobs for current state. Events notify the current registered document and are not replayed after relaunch. A route answers in `mediaPicker<Route>` and `onMediaPicker<Route>`, for example `mediaPickerPick` and `onMediaPickerPick`.
 
 ### Routes
 
@@ -120,7 +126,7 @@ Every route answers at once, once. What happens later arrives as an event and st
 
 ### The file object
 
-`fileId`, `pickId`, `state`, `name`, `mime`, `kind`, `bytes`, `origin`, `url`, `width`, `height`, `durationMs`, `progress` and `reason`. `state` is `loading`, `ready`, `failed` or `released`. `url` exists only while `state` is `ready`. After release the old URL answers 404.
+`fileId`, `pickId`, `state`, `name`, `mime`, `kind`, `bytes`, `origin`, `url`, `width`, `height`, `durationMs`, `progress` and `reason`. `state` is `loading`, `ready`, `failed` or `released`. `url` exists only while `state` is `ready`. Release withdraws the URL token. Stop using the old URL and read files for released state. The native server returns 404 for an unknown token; a WebView request can fail before exposing an HTTP status.
 
 ### Events
 
@@ -146,7 +152,7 @@ See also the standard codes.
 
 A reply is a JavaScript string, so file bytes never belong in one. The extension serves each file from your own phone on `http://127.0.0.1:<port>/f/<token>/<name>`, straight from the file on disk.
 
-- It answers `GET`, `HEAD` and `OPTIONS`, with single byte ranges, so a `<video>` can seek and `fetch(url).then(r => r.blob())` works from your https page. Files stream in 256 KiB chunks and are never held whole in memory.
+- It answers `GET`, `HEAD` and `OPTIONS`, with single byte ranges. Import preserves the source representation; video playback requires a browser-supported container and codec. Validate local fetch and playback in your target native app. Files stream in 256 KiB chunks and are never held whole in memory.
 - The URL is the access: it holds a random 256-bit token, and the token is withdrawn the moment the file is released. The server listens on the loopback interface only.
 - Limits: a connection that sends no complete request in 10 seconds is closed, and at most 16 connections are open at once.
 
